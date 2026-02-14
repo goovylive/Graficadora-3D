@@ -1,4 +1,4 @@
-/* CSS con Scroll Natural - Diseño Híbrido */
+/* CSS con Scroll Natural y Optimización Inteligente */
 
 :root {
     --primary: #002d72;
@@ -75,11 +75,36 @@ header h1 {
     font-weight: 800;
 }
 
-/* Main Layout - Flow default for Mobile */
+/* Banner de Optimización */
+.info-banner {
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    color: #0369a1;
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.status-tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-top: 8px;
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+/* Main Layout */
 main {
     display: flex;
     flex-direction: column;
-    padding: 0;
 }
 
 /* Sidebar / Controls Panel */
@@ -194,7 +219,7 @@ select {
     height: 100%;
 }
 
-/* Time Controls Box (Under Plot) */
+/* Time Controls Box */
 #time-controls-box {
     margin-top: 1.5rem;
     background: var(--white);
@@ -275,6 +300,7 @@ input[type="range"] {
     border-radius: 8px;
     font-size: 0.8rem;
     display: none;
+    z-index: 10;
 }
 
 /* DESKTOP REFINEMENT */

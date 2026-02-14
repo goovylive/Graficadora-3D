@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HyperSurf 4D | Visualizador Pro</title>
+    <title>HyperSurf 4D | Visualizador Inteligente</title>
 
     <!-- Librerías Externas -->
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
@@ -36,9 +36,14 @@
     </header>
 
     <main>
-        <!-- Panel de Controles: Siempre visible -->
+        <!-- Panel de Controles -->
         <aside id="sidebar">
             <div class="sidebar-scroll-container">
+                <div id="optimization-msg" class="info-banner" style="display:none">
+                    <span class="info-icon">ℹ️</span>
+                    <span id="opt-text">Optimizando para tu dispositivo...</span>
+                </div>
+
                 <div class="section-title">Ecuación f(x,y,z,t)=0</div>
                 <div class="control-group">
                     <input type="text" id="equation-input" autocomplete="off" value="x^2 + y^2 + z^2 - (2 + sin(t))^2"
@@ -72,27 +77,16 @@
                     </div>
                 </div>
 
-                <div class="section-title">Control Temporal (T)</div>
+                <div class="section-title">Configuración de Rendimiento</div>
                 <div class="control-group">
-                    <div class="range-inputs">
-                        <div>
-                            <label class="input-label">T Start</label>
-                            <input type="number" id="t-min" value="0" step="0.1">
-                        </div>
-                        <div>
-                            <label class="input-label">T End</label>
-                            <input type="number" id="t-max" value="6.28" step="0.1">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="section-title">Renderizado</div>
-                <div class="control-group">
-                    <select id="resolution">
-                        <option value="15">Calidad Baja (Rápido)</option>
-                        <option value="25" selected>Calidad Media (Estándar)</option>
-                        <option value="40">Calidad Alta (Lento)</option>
+                    <label class="input-label">Calidad Inteligente</label>
+                    <select id="quality-selector">
+                        <option value="auto" selected>Modo Auto (Recomendado)</option>
+                        <option value="low">Calidad Baja (Ahorro)</option>
+                        <option value="medium">Calidad Media (Estándar)</option>
+                        <option value="high">Calidad Alta (GPU Potente)</option>
                     </select>
+                    <div id="res-info-tag" class="status-tag">Auto: Detectando...</div>
                 </div>
 
                 <div class="section-title">Ejemplos</div>
@@ -103,7 +97,10 @@
                     <button class="btn-example" onclick="loadExample('ripple')">Rizado Z</button>
                 </div>
 
-                <button class="btn btn-main" onclick="updatePlot()">ACTUALIZAR GRÁFICO</button>
+                <button class="btn btn-main" onclick="updatePlot()">APLICAR Y RECALCULAR</button>
+
+                <input type="hidden" id="t-min" value="0">
+                <input type="hidden" id="t-max" value="6.28">
             </div>
         </aside>
 
@@ -118,7 +115,7 @@
                 <div id="plot"></div>
             </div>
 
-            <!-- Controles de Tiempo (siempre bajo el gráfico) -->
+            <!-- Controles de Tiempo -->
             <div id="time-controls-box">
                 <div class="time-main-controls">
                     <button id="btn-play" class="btn btn-play-main" onclick="toggleAnimation()">
