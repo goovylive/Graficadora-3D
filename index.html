@@ -18,7 +18,7 @@
 <body>
 
     <header>
-        <div class="header-main">
+        <div class="header-container">
             <h1>
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
                     stroke-linecap="round" stroke-linejoin="round" style="color:var(--secondary)">
@@ -28,23 +28,17 @@
                 </svg>
                 HyperSurf 4D
             </h1>
-            <button id="mobile-toggle" class="btn-toggle" onclick="toggleControls()">
-                <span id="toggle-text">Mostrar Controles</span>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 12 15 18 9"></polyline>
-                </svg>
-            </button>
-        </div>
-        <div class="university-brand desktop-only">
-            U. EL BOSQUE | ACADÉMICO
-            <div class="brand-logo">B</div>
+            <div class="university-brand">
+                <span class="desktop-only text-label">U. EL BOSQUE | ACADÉMICO</span>
+                <div class="brand-logo">B</div>
+            </div>
         </div>
     </header>
 
     <main>
-        <aside id="sidebar" class="sidebar-hidden">
-            <div class="sidebar-content">
+        <!-- Panel de Controles: Siempre visible -->
+        <aside id="sidebar">
+            <div class="sidebar-scroll-container">
                 <div class="section-title">Ecuación f(x,y,z,t)=0</div>
                 <div class="control-group">
                     <input type="text" id="equation-input" autocomplete="off" value="x^2 + y^2 + z^2 - (2 + sin(t))^2"
@@ -78,17 +72,30 @@
                     </div>
                 </div>
 
+                <div class="section-title">Control Temporal (T)</div>
+                <div class="control-group">
+                    <div class="range-inputs">
+                        <div>
+                            <label class="input-label">T Start</label>
+                            <input type="number" id="t-min" value="0" step="0.1">
+                        </div>
+                        <div>
+                            <label class="input-label">T End</label>
+                            <input type="number" id="t-max" value="6.28" step="0.1">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="section-title">Renderizado</div>
                 <div class="control-group">
-                    <label class="input-label">Calidad de Malla</label>
                     <select id="resolution">
-                        <option value="15">Baja (Rápido)</option>
-                        <option value="25" selected>Media (Equilibrado)</option>
-                        <option value="40">Alta (Detallado)</option>
+                        <option value="15">Calidad Baja (Rápido)</option>
+                        <option value="25" selected>Calidad Media (Estándar)</option>
+                        <option value="40">Calidad Alta (Lento)</option>
                     </select>
                 </div>
 
-                <div class="section-title">Ejemplos Rápidos</div>
+                <div class="section-title">Ejemplos</div>
                 <div class="examples-grid">
                     <button class="btn-example" onclick="loadExample('pulse')">Esfera Pulsante</button>
                     <button class="btn-example" onclick="loadExample('wave')">Onda Espacial</button>
@@ -96,43 +103,49 @@
                     <button class="btn-example" onclick="loadExample('ripple')">Rizado Z</button>
                 </div>
 
-                <button class="btn btn-main" onclick="updatePlot()">APLICAR CAMBIOS</button>
-
-                <!-- Hidden fields for logic persistence if needed -->
-                <input type="hidden" id="t-min" value="0">
-                <input type="hidden" id="t-max" value="6.28">
+                <button class="btn btn-main" onclick="updatePlot()">ACTUALIZAR GRÁFICO</button>
             </div>
         </aside>
 
-        <section id="plot-container">
-            <div id="error-overlay"></div>
-            <div id="status-pill">
-                <div class="pulse"></div>
-                <span id="render-info">Cargando...</span>
+        <!-- Área de Visualización -->
+        <section id="plot-area">
+            <div id="plot-container">
+                <div id="error-overlay"></div>
+                <div id="status-pill">
+                    <div class="pulse"></div>
+                    <span id="render-info">Sistema Listo</span>
+                </div>
+                <div id="plot"></div>
             </div>
 
-            <div id="plot"></div>
+            <!-- Controles de Tiempo (siempre bajo el gráfico) -->
+            <div id="time-controls-box">
+                <div class="time-main-controls">
+                    <button id="btn-play" class="btn btn-play-main" onclick="toggleAnimation()">
+                        <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M8 5v14l11-7z"></path>
+                        </svg>
+                        <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"
+                            style="display:none">
+                            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+                        </svg>
+                        <span id="play-text">Reproducir</span>
+                    </button>
 
-            <div id="time-controls">
-                <button id="btn-play" class="btn btn-icon btn-play" onclick="toggleAnimation()">
-                    <svg id="play-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8 5v14l11-7z"></path>
-                    </svg>
-                    <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="currentColor"
-                        style="display:none">
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
-                    </svg>
-                </button>
-
-                <div class="slider-wrapper">
-                    <input type="range" id="t-slider" min="0" max="6.28" step="0.01" value="0">
-                    <div class="t-display" id="t-display">0.00</div>
+                    <div class="speed-container">
+                        <label class="input-label">Velocidad</label>
+                        <select id="speed-select">
+                            <option value="0.02">0.5x</option>
+                            <option value="0.05" selected>1.0x</option>
+                            <option value="0.12">2.5x</option>
+                        </select>
+                    </div>
                 </div>
 
-                <select id="speed-select" class="desktop-only">
-                    <option value="0.05" selected>1x</option>
-                    <option value="0.1">2x</option>
-                </select>
+                <div class="slider-box">
+                    <input type="range" id="t-slider" min="0" max="6.28" step="0.01" value="0">
+                    <div class="t-val-display" id="t-display">t = 0.00</div>
+                </div>
             </div>
         </section>
     </main>

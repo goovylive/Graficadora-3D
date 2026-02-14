@@ -1,13 +1,11 @@
 /**
- * HyperSurf 4D Engine
- * Lógica de graficación de superficies implícitas con soporte móvil
+ * HyperSurf 4D Engine - Simple Scroll Version
  */
 
 let isAnimating = false;
 let animationId = null;
 let compiledEq = null;
 
-// Elementos UI
 const UI = {
     eq: document.getElementById('equation-input'),
     xmin: document.getElementById('x-min'), xmax: document.getElementById('x-max'),
@@ -20,33 +18,13 @@ const UI = {
     btnPlay: document.getElementById('btn-play'),
     playIcon: document.getElementById('play-icon'),
     pauseIcon: document.getElementById('pause-icon'),
+    playText: document.getElementById('play-text'),
     speed: document.getElementById('speed-select'),
-    sidebar: document.getElementById('sidebar'),
-    toggleText: document.getElementById('toggle-text'),
-    toggleBtn: document.getElementById('mobile-toggle'),
     error: document.getElementById('error-overlay'),
     renderInfo: document.getElementById('render-info'),
     plot: document.getElementById('plot')
 };
 
-// --- Mobile Toggle Logic ---
-function toggleControls() {
-    const isHidden = UI.sidebar.classList.contains('sidebar-hidden');
-
-    if (isHidden) {
-        UI.sidebar.classList.remove('sidebar-hidden');
-        UI.sidebar.classList.add('sidebar-open');
-        UI.toggleText.innerText = 'Ocultar Controles';
-        UI.toggleBtn.classList.add('open');
-    } else {
-        UI.sidebar.classList.remove('sidebar-open');
-        UI.sidebar.classList.add('sidebar-hidden');
-        UI.toggleText.innerText = 'Mostrar Controles';
-        UI.toggleBtn.classList.remove('open');
-    }
-}
-
-// --- Plotting Engine ---
 const EXAMPLES = {
     wave: { eq: "sin(sqrt(x^2 + y^2) - t) - z", x: [-5, 5], y: [-5, 5], z: [-2, 2] },
     pulse: { eq: "x^2 + y^2 + z^2 - (2 + sin(t))^2", x: [-4, 4], y: [-4, 4], z: [-4, 4] },
@@ -61,9 +39,7 @@ function loadExample(key) {
     UI.ymin.value = ex.y[0]; UI.ymax.value = ex.y[1];
     UI.zmin.value = ex.z[0]; UI.zmax.value = ex.z[1];
 
-    // Si estamos en móvil y se carga ejemplo, colapsamos para ver el resultado
-    if (window.innerWidth < 768) toggleControls();
-
+    // En esta versión no hay colapso, el usuario puede bajar al gráfico manualmente
     updatePlot();
 }
 
@@ -71,17 +47,12 @@ function updatePlot() {
     try {
         const rawEq = UI.eq.value.split('=')[0].trim();
         compiledEq = math.compile(rawEq);
-        // Test evaluation
         compiledEq.evaluate({ x: 0, y: 0, z: 0, t: 0 });
         UI.error.style.display = 'none';
 
-        // En móvil colapsamos al aplicar manualmente
-        if (window.innerWidth < 768 && !isAnimating) {
-            UI.sidebar.classList.remove('sidebar-open');
-            UI.sidebar.classList.add('sidebar-hidden');
-            UI.toggleText.innerText = 'Mostrar Controles';
-            UI.toggleBtn.classList.remove('open');
-        }
+        // Sync slider limits with inputs if necessary
+        UI.slider.min = UI.tmin.value;
+        UI.slider.max = UI.tmax.value;
     } catch (err) {
         UI.error.innerText = "Error: " + err.message;
         UI.error.style.display = 'block';
@@ -94,7 +65,7 @@ async function renderFrame() {
     if (!compiledEq) return;
 
     const t = parseFloat(UI.slider.value);
-    UI.tDisplay.innerText = t.toFixed(2);
+    UI.tDisplay.innerText = `t = ${t.toFixed(2)}`;
 
     const res = parseInt(UI.res.value);
     const x0 = parseFloat(UI.xmin.value), x1 = parseFloat(UI.xmax.value);
@@ -103,7 +74,6 @@ async function renderFrame() {
 
     const x = [], y = [], z = [], v = [], intensity = [];
     const dx = (x1 - x0) / (res - 1), dy = (y1 - y0) / (res - 1), dz = (z1 - z0) / (res - 1);
-
     const start = performance.now();
 
     for (let i = 0; i < res; i++) {
@@ -121,12 +91,12 @@ async function renderFrame() {
 
     const data = [{
         type: 'isosurface',
-        x: x, y: y, z: z, value: v,
+        x, y, z, value: v,
         isomin: -0.01, isomax: 0.01,
         intensity: intensity,
-        surface: { fill: 1, count: 1 },
+        surface: { fill: 1 },
         colorscale: 'Portland',
-        showscale: window.innerWidth > 768, // Ocultar barra en móvil para ganar espacio
+        showscale: false,
         caps: { show: false },
         lighting: { ambient: 0.6, diffuse: 0.7, specular: 0.3 }
     }];
@@ -135,28 +105,26 @@ async function renderFrame() {
         margin: { t: 0, b: 0, l: 0, r: 0 },
         scene: {
             aspectmode: 'cube',
-            xaxis: { title: 'X', gridcolor: "#eee" },
-            yaxis: { title: 'Y', gridcolor: "#eee" },
-            zaxis: { title: 'Z', gridcolor: "#eee" },
-            camera: { eye: { x: 1.6, y: 1.6, z: 1.2 } }
-        },
-        paper_bgcolor: 'white'
+            xaxis: { gridcolor: "#eee" },
+            yaxis: { gridcolor: "#eee" },
+            zaxis: { gridcolor: "#eee" },
+            camera: { eye: { x: 1.5, y: 1.5, z: 1.2 } }
+        }
     };
 
     await Plotly.react('plot', data, layout, { responsive: true, displaylogo: false });
-    UI.renderInfo.innerText = `${(performance.now() - start).toFixed(0)}ms | ${res}³`;
+    UI.renderInfo.innerText = `${(performance.now() - start).toFixed(0)} ms | ${res}³`;
 }
 
-// --- Animation Loop ---
 function animate() {
     if (!isAnimating) return;
-
     let t = parseFloat(UI.slider.value);
-    let speed = parseFloat(UI.speed ? UI.speed.value : 0.05);
+    let speed = parseFloat(UI.speed.value);
+    let tMax = parseFloat(UI.tmax.value);
+    let tMin = parseFloat(UI.tmin.value);
 
     t += speed;
-    if (t > 6.28) t = 0;
-
+    if (t > tMax) t = tMin;
     UI.slider.value = t;
 
     renderFrame().then(() => {
@@ -166,28 +134,20 @@ function animate() {
 
 function toggleAnimation() {
     isAnimating = !isAnimating;
-
     if (isAnimating) {
         UI.playIcon.style.display = 'none';
         UI.pauseIcon.style.display = 'block';
+        UI.playText.innerText = 'Pausar';
         animate();
     } else {
         UI.playIcon.style.display = 'block';
         UI.pauseIcon.style.display = 'none';
+        UI.playText.innerText = 'Reproducir';
         if (animationId) cancelAnimationFrame(animationId);
     }
 }
 
-// --- Init & Observers ---
-UI.slider.addEventListener('input', () => {
-    if (!isAnimating) renderFrame();
-});
-
-window.addEventListener('resize', () => {
-    Plotly.Plots.resize(UI.plot);
-});
-
-// Inicialización
-window.addEventListener('load', () => {
-    updatePlot();
-});
+// Eventos
+UI.slider.addEventListener('input', () => { if (!isAnimating) renderFrame(); });
+window.addEventListener('resize', () => Plotly.Plots.resize(UI.plot));
+window.addEventListener('load', updatePlot);
