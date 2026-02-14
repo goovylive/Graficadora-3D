@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Superficies 4D | f(x,y,z,t)=0</title>
+    <meta name="description"
+        content="Página profesional para visualizar superficies implícitas 4D interactivas con Plotly.js">
+
+    <!-- Librerías Externas -->
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;600&display=swap"
+        rel="stylesheet">
+
+    <!-- Enlace a estilos externos -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <header>
+        <h1>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round" style="color:var(--secondary)">
+                <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                <polyline points="2 17 12 22 22 17"></polyline>
+                <polyline points="2 12 12 17 22 12"></polyline>
+            </svg>
+            HyperSurf <span style="font-weight: 300; opacity: 0.6">4D</span>
+        </h1>
+        <div class="university-brand">
+            Visualizador Académico
+            <div class="brand-logo">B</div>
+        </div>
+    </header>
+
+    <main>
+        <aside id="sidebar">
+            <div class="section-title">Parámetros de Función</div>
+            <div class="control-group">
+                <label class="input-label">Ecuación Implícita f(x,y,z,t) = 0</label>
+                <div class="eq-container">
+                    <input type="text" id="equation-input" autocomplete="off" value="x^2 + y^2 + z^2 - (2 + sin(t))^2">
+                </div>
+                <div style="font-size: 0.65rem; color: #a0aec0; margin-top: 6px; line-height: 1.4;">
+                    Operadores: +, -, *, /, ^. Funciones: sin, cos, tan, sqrt, exp, log, abs.
+                </div>
+            </div>
+
+            <div class="section-title">Dominios Espaciales</div>
+            <div class="control-group">
+                <div class="range-grid">
+                    <div>
+                        <label class="input-label">X Range</label>
+                        <div class="range-grid">
+                            <input type="number" id="x-min" value="-4" step="0.5">
+                            <input type="number" id="x-max" value="4" step="0.5">
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label class="input-label">Y Range</label>
+                    <div class="range-grid">
+                        <input type="number" id="y-min" value="-4" step="0.5">
+                        <input type="number" id="y-max" value="4" step="0.5">
+                    </div>
+                </div>
+                <div style="margin-top: 10px;">
+                    <label class="input-label">Z Range</label>
+                    <div class="range-grid">
+                        <input type="number" id="z-min" value="-4" step="0.5">
+                        <input type="number" id="z-max" value="4" step="0.5">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">Control Temporal</div>
+            <div class="control-group">
+                <div class="range-grid">
+                    <div>
+                        <label class="input-label">T Start</label>
+                        <input type="number" id="t-min" value="0" step="0.1">
+                    </div>
+                    <div>
+                        <label class="input-label">T End</label>
+                        <input type="number" id="t-max" value="6.28" step="0.1">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-title">Configuración del Render</div>
+            <div class="control-group">
+                <label class="input-label">Resolución de Malla (Grid)</label>
+                <select id="resolution">
+                    <option value="15">Nivel 1: Borrador (Ultra Rápido)</option>
+                    <option value="25" selected>Nivel 2: Estándar (Recomendado)</option>
+                    <option value="35">Nivel 3: Detallado (GPU intensivo)</option>
+                    <option value="50">Nivel 4: Calidad Final (Lento)</option>
+                </select>
+            </div>
+
+            <div class="section-title">Bibliotecas de Ejemplo</div>
+            <div class="examples-grid">
+                <button class="btn-example" onclick="loadExample('pulse')">Esfera Pulsante</button>
+                <button class="btn-example" onclick="loadExample('wave')">Onda 3D</button>
+                <button class="btn-example" onclick="loadExample('torus')">Toroide</button>
+                <button class="btn-example" onclick="loadExample('ripple')">Rizado</button>
+            </div>
+
+            <button class="btn btn-main" onclick="updatePlot()">
+                RECALCULAR SUPERFICIE
+            </button>
+        </aside>
+
+        <section id="plot-container">
+            <div id="error-overlay"></div>
+            <div id="status-pill">
+                <div class="pulse"></div>
+                <span id="render-info">Sistema Listo</span>
+            </div>
+
+            <div id="plot"></div>
+
+            <div id="time-controls">
+                <button id="btn-play" class="btn btn-icon btn-play" onclick="toggleAnimation()"
+                    title="Reproducir Evolución">
+                    <svg id="play-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"></path>
+                    </svg>
+                    <svg id="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
+                        style="display:none">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+                    </svg>
+                </button>
+
+                <button id="btn-reset" class="btn btn-icon" onclick="resetAnimation()" title="Reiniciar Tiempo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <polyline points="3 3 3 8 8 8"></polyline>
+                    </svg>
+                </button>
+
+                <div class="slider-wrapper">
+                    <input type="range" id="t-slider" min="0" max="6.28" step="0.01" value="0">
+                    <div class="t-display" id="t-display">0.00</div>
+                </div>
+
+                <select id="speed-select"
+                    style="width: auto; padding: 5px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">
+                    <option value="0.02">0.5x</option>
+                    <option value="0.05" selected>1.0x</option>
+                    <option value="0.1">2.0x</option>
+                </select>
+            </div>
+        </section>
+    </main>
+
+    <!-- Enlace a lógica externa -->
+    <script src="script.js"></script>
+</body>
+
+</html>
