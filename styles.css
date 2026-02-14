@@ -1,7 +1,9 @@
 :root {
-    --primary: #002d72; /* Azul Universidad El Bosque */
+    --primary: #002d72;
+    /* Azul Universidad El Bosque */
     --primary-light: #1e4a8c;
-    --secondary: #ff8c00; /* Naranja corporativo */
+    --secondary: #ff8c00;
+    /* Naranja corporativo */
     --bg-light: #f4f7f9;
     --white: #ffffff;
     --text-main: #1a202c;
@@ -336,9 +338,20 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 @keyframes pulse-ring {
-    0% { transform: scale(0.8); opacity: 0.5; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(0.8); opacity: 0.5; }
+    0% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
 }
 
 /* Error Message */
@@ -363,6 +376,7 @@ input[type="range"]::-webkit-slider-thumb:hover {
     main {
         grid-template-columns: 1fr;
     }
+
     #sidebar {
         display: none;
     }
