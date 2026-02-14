@@ -1,8 +1,13 @@
-// --- Core Engine ---
+/**
+ * HyperSurf 4D Engine
+ * Lógica de graficación de superficies implícitas con soporte móvil
+ */
+
 let isAnimating = false;
 let animationId = null;
 let compiledEq = null;
 
+// Elementos UI
 const UI = {
     eq: document.getElementById('equation-input'),
     xmin: document.getElementById('x-min'), xmax: document.getElementById('x-max'),
@@ -16,22 +21,38 @@ const UI = {
     playIcon: document.getElementById('play-icon'),
     pauseIcon: document.getElementById('pause-icon'),
     speed: document.getElementById('speed-select'),
+    sidebar: document.getElementById('sidebar'),
+    toggleText: document.getElementById('toggle-text'),
+    toggleBtn: document.getElementById('mobile-toggle'),
     error: document.getElementById('error-overlay'),
-    renderInfo: document.getElementById('render-info')
+    renderInfo: document.getElementById('render-info'),
+    plot: document.getElementById('plot')
 };
 
-const EXAMPLES = {
-    wave: { eq: "sin(sqrt(x^2 + y^2) - t) - z", x: [-5, 5], y: [-5, 5], z: [-2, 2], t: [0, 6.28] },
-    pulse: { eq: "x^2 + y^2 + z^2 - (2 + sin(t))^2", x: [-4, 4], y: [-4, 4], z: [-4, 4], t: [0, 6.28] },
-    torus: { eq: "(sqrt(x^2 + y^2) - 2.5)^2 + z^2 - (0.8 + 0.3*cos(t))^2", x: [-4, 4], y: [-4, 4], z: [-2, 2], t: [0, 6.28] },
-    ripple: { eq: "z - 0.5*sin(x + t)*cos(y + t)", x: [-5, 5], y: [-5, 5], z: [-2, 2], t: [0, 6.28] }
-};
+// --- Mobile Toggle Logic ---
+function toggleControls() {
+    const isHidden = UI.sidebar.classList.contains('sidebar-hidden');
 
-function showError(msg) {
-    UI.error.innerText = msg;
-    UI.error.style.display = 'block';
-    setTimeout(() => UI.error.style.display = 'none', 5000);
+    if (isHidden) {
+        UI.sidebar.classList.remove('sidebar-hidden');
+        UI.sidebar.classList.add('sidebar-open');
+        UI.toggleText.innerText = 'Ocultar Controles';
+        UI.toggleBtn.classList.add('open');
+    } else {
+        UI.sidebar.classList.remove('sidebar-open');
+        UI.sidebar.classList.add('sidebar-hidden');
+        UI.toggleText.innerText = 'Mostrar Controles';
+        UI.toggleBtn.classList.remove('open');
+    }
 }
+
+// --- Plotting Engine ---
+const EXAMPLES = {
+    wave: { eq: "sin(sqrt(x^2 + y^2) - t) - z", x: [-5, 5], y: [-5, 5], z: [-2, 2] },
+    pulse: { eq: "x^2 + y^2 + z^2 - (2 + sin(t))^2", x: [-4, 4], y: [-4, 4], z: [-4, 4] },
+    torus: { eq: "(sqrt(x^2 + y^2) - 2.5)^2 + z^2 - (0.8 + 0.3*cos(t))^2", x: [-4, 4], y: [-4, 4], z: [-2, 2] },
+    ripple: { eq: "z - 0.5*sin(x + t)*cos(y + t)", x: [-5, 5], y: [-5, 5], z: [-2, 2] }
+};
 
 function loadExample(key) {
     const ex = EXAMPLES[key];
@@ -39,7 +60,10 @@ function loadExample(key) {
     UI.xmin.value = ex.x[0]; UI.xmax.value = ex.x[1];
     UI.ymin.value = ex.y[0]; UI.ymax.value = ex.y[1];
     UI.zmin.value = ex.z[0]; UI.zmax.value = ex.z[1];
-    UI.tmin.value = ex.t[0]; UI.tmax.value = ex.t[1];
+
+    // Si estamos en móvil y se carga ejemplo, colapsamos para ver el resultado
+    if (window.innerWidth < 768) toggleControls();
+
     updatePlot();
 }
 
@@ -47,14 +71,22 @@ function updatePlot() {
     try {
         const rawEq = UI.eq.value.split('=')[0].trim();
         compiledEq = math.compile(rawEq);
-        compiledEq.evaluate({x:0, y:0, z:0, t:0});
+        // Test evaluation
+        compiledEq.evaluate({ x: 0, y: 0, z: 0, t: 0 });
         UI.error.style.display = 'none';
+
+        // En móvil colapsamos al aplicar manualmente
+        if (window.innerWidth < 768 && !isAnimating) {
+            UI.sidebar.classList.remove('sidebar-open');
+            UI.sidebar.classList.add('sidebar-hidden');
+            UI.toggleText.innerText = 'Mostrar Controles';
+            UI.toggleBtn.classList.remove('open');
+        }
     } catch (err) {
-        showError("Error: " + err.message);
+        UI.error.innerText = "Error: " + err.message;
+        UI.error.style.display = 'block';
         return;
     }
-    UI.slider.min = UI.tmin.value;
-    UI.slider.max = UI.tmax.value;
     renderFrame();
 }
 
@@ -72,17 +104,17 @@ async function renderFrame() {
     const x = [], y = [], z = [], v = [], intensity = [];
     const dx = (x1 - x0) / (res - 1), dy = (y1 - y0) / (res - 1), dz = (z1 - z0) / (res - 1);
 
-    const startTime = performance.now();
+    const start = performance.now();
 
     for (let i = 0; i < res; i++) {
-        const curX = x0 + i * dx;
+        const cx = x0 + i * dx;
         for (let j = 0; j < res; j++) {
-            const curY = y0 + j * dy;
+            const cy = y0 + j * dy;
             for (let k = 0; k < res; k++) {
-                const curZ = z0 + k * dz;
-                x.push(curX); y.push(curY); z.push(curZ);
-                v.push(compiledEq.evaluate({x: curX, y: curY, z: curZ, t: t}));
-                intensity.push(curZ); // Coloreado por altura Z
+                const cz = z0 + k * dz;
+                x.push(cx); y.push(cy); z.push(cz);
+                v.push(compiledEq.evaluate({ x: cx, y: cy, z: cz, t: t }));
+                intensity.push(cz);
             }
         }
     }
@@ -92,41 +124,41 @@ async function renderFrame() {
         x: x, y: y, z: z, value: v,
         isomin: -0.01, isomax: 0.01,
         intensity: intensity,
-        surface: { show: true, fill: 1, count: 1 },
-        spaceframe: { show: false }, contour: { show: false },
-        caps: { x: {show: false}, y: {show: false}, z: {show: false} },
-        colorscale: [
-            [0, '#0000ff'], [0.1, '#0088ff'], [0.2, '#00ffff'], 
-            [0.4, '#00ff00'], [0.6, '#ffff00'], [0.8, '#ff8800'], [1, '#ff0000']
-        ],
-        showscale: true,
-        colorbar: { title: 'Z', thickness: 15 },
-        lighting: { ambient: 0.6, diffuse: 0.7, specular: 0.3, roughness: 0.4 }
+        surface: { fill: 1, count: 1 },
+        colorscale: 'Portland',
+        showscale: window.innerWidth > 768, // Ocultar barra en móvil para ganar espacio
+        caps: { show: false },
+        lighting: { ambient: 0.6, diffuse: 0.7, specular: 0.3 }
     }];
 
     const layout = {
-        autosize: true, margin: { t: 0, b: 0, l: 0, r: 0 },
+        margin: { t: 0, b: 0, l: 0, r: 0 },
         scene: {
             aspectmode: 'cube',
-            xaxis: { title: 'X', gridcolor: "#ddd" },
-            yaxis: { title: 'Y', gridcolor: "#ddd" },
-            zaxis: { title: 'Z', gridcolor: "#ddd" },
-            camera: { eye: { x: 1.8, y: 1.8, z: 1.2 } }
-        }
+            xaxis: { title: 'X', gridcolor: "#eee" },
+            yaxis: { title: 'Y', gridcolor: "#eee" },
+            zaxis: { title: 'Z', gridcolor: "#eee" },
+            camera: { eye: { x: 1.6, y: 1.6, z: 1.2 } }
+        },
+        paper_bgcolor: 'white'
     };
 
     await Plotly.react('plot', data, layout, { responsive: true, displaylogo: false });
-    const endTime = performance.now();
-    UI.renderInfo.innerText = `${(endTime - startTime).toFixed(0)}ms | ${res}³ pts`;
+    UI.renderInfo.innerText = `${(performance.now() - start).toFixed(0)}ms | ${res}³`;
 }
 
+// --- Animation Loop ---
 function animate() {
     if (!isAnimating) return;
+
     let t = parseFloat(UI.slider.value);
-    const tMin = parseFloat(UI.slider.min), tMax = parseFloat(UI.slider.max);
-    t += parseFloat(UI.speed.value);
-    if (t > tMax) t = tMin;
+    let speed = parseFloat(UI.speed ? UI.speed.value : 0.05);
+
+    t += speed;
+    if (t > 6.28) t = 0;
+
     UI.slider.value = t;
+
     renderFrame().then(() => {
         animationId = requestAnimationFrame(animate);
     });
@@ -134,20 +166,28 @@ function animate() {
 
 function toggleAnimation() {
     isAnimating = !isAnimating;
+
     if (isAnimating) {
-        UI.playIcon.style.display = 'none'; UI.pauseIcon.style.display = 'block';
-        UI.btnPlay.classList.add('active'); animate();
+        UI.playIcon.style.display = 'none';
+        UI.pauseIcon.style.display = 'block';
+        animate();
     } else {
-        UI.playIcon.style.display = 'block'; UI.pauseIcon.style.display = 'none';
-        UI.btnPlay.classList.remove('active');
+        UI.playIcon.style.display = 'block';
+        UI.pauseIcon.style.display = 'none';
         if (animationId) cancelAnimationFrame(animationId);
     }
 }
 
-function resetAnimation() {
-    UI.slider.value = UI.slider.min;
+// --- Init & Observers ---
+UI.slider.addEventListener('input', () => {
     if (!isAnimating) renderFrame();
-}
+});
 
-UI.slider.addEventListener('input', () => { if (!isAnimating) renderFrame(); });
-window.addEventListener('load', updatePlot);
+window.addEventListener('resize', () => {
+    Plotly.Plots.resize(UI.plot);
+});
+
+// Inicialización
+window.addEventListener('load', () => {
+    updatePlot();
+});
